@@ -1,5 +1,5 @@
 "# Sudoku-Solver" 
-Can solve easy (http://www.sudokudragon.com/dailyeasy.php)and medium (eg http://www.sudokudragon.com/dailymoderate.php) Sudoku puzzles, but cannot solve puzzles that require randomization or advanced permutation strategies. 
+Can solve easy (eg. http://www.sudokudragon.com/dailyeasy.php) and medium (eg http://www.sudokudragon.com/dailymoderate.php) Sudoku puzzles, but cannot solve puzzles that require randomization or advanced permutation strategies. 
 
 TODOs: 
 - create UI wrapper so easy to play with from command line.
