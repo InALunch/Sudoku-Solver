@@ -136,5 +136,5 @@ def sudoku_solver(board):
         matrix, updates = full_counter(matrix)
         cancellation_queue = list(updates)
     board = output_board(matrix)
-    return board, matrix
+    return board
 
