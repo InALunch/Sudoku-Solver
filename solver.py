@@ -88,38 +88,96 @@ def count_line(matrix, line):
             matrix[saved[0]][saved[1]] = set([number])
             update.add(saved)
     return update
-    
-def count_horizontal(matrix):
-    updates = set()
+  
+def generate_lines(horizontal = True):
+    lines = []
     for i in range(9):
-        line = [(i, j) for j in range(9)]
-        updates = updates.union(count_line(matrix, line))
-    return updates
-    
-def count_vertical(matrix):
-    updates = set()
-    for j in range(9):
-        line = [(i, j) for i in range(9)]
-        updates = updates.union(count_line(matrix, line))
-    return updates
+        if horizontal:
+             line = [(i, j) for j in range(9)]
+        else:
+            line = [(j, i) for j in range(9)]
+        lines.append(line)
+    return lines 
 
-def count_squares(matrix):
-    updates = set()
+def generate_squares():
     starts = [(x,y) for x in [0, 3, 6] for y in [0, 3, 6]]
+    squares = []
     for start in starts:
-        line = []
+        square = []
         for i in range(3):
             for j in range(3):
-                line.append((start[0] + i, start[1] + j))
-        updates = updates.union(count_line(matrix, line))
-    return updates
+                square.append((start[0] + i, start[1] + j))
+        squares.append(square)
+    return squares
     
-def full_counter(matrix):
+def generate_all():
+    blocks = []
+    for line in generate_lines(True):
+        blocks.append(line)
+    for line in generate_lines(False):
+        blocks.append(line)
+    for line in generate_squares():
+        blocks.append(line)
+    return blocks
+  
+def full_counter(blocks, matrix):
     updates = set()
-    for counter in [count_squares, count_vertical, count_horizontal]:
-        updates = updates.union(counter(matrix))
+    for block in blocks:
+        for new_pos in count_line(matrix, block):
+            updates.add(new_pos)
     return matrix, updates
 
+def extracttuple(n):
+    '''
+    Overly clever code tbh, but I almost never get to make a function that generates functions
+    '''
+    def findtuples(lst, matrix):
+        new_lst = []
+        for elem in lst:
+            if len(matrix[elem[0]][elem[1]]) == n:
+                new_lst.append(elem)
+        return new_lst
+    return findtuples
+    
+def find_twins(line, matrix):
+    '''
+     Basically just a variant algorithm of the optimal solution to TwoSum, see https://leetcode.com/problems/two-sum/description/ 
+    '''
+    unmatched = dict()
+    twins = []
+    for elem in line:
+        value = tuple(matrix[elem[0]][elem[1]])
+        if value in unmatched:
+            twins.append([elem, unmatched[value]])
+        else:
+            unmatched[value] = elem
+    return twins 
+
+def tuple_ellimination(block, matrix, tups):
+    values = matrix[tups[0][0]][tups[0][1]]
+    updates = set()
+    for tup in block:
+        if tup not in tups and len(tup) > 1:
+            for value in values:
+                if value in matrix[tup[0]][tup[1]]:
+                    matrix[tup[0]][tup[1]].discard(value)
+                    if len(matrix[tup[0]][tup[1]]) == 1:
+                        updates.add(tup)
+    return updates 
+        
+def open_twins(blocks, matrix):
+    find_doubles = extracttuple(2)
+    updates = set()
+    for block in blocks:
+        doubles = find_doubles(block, matrix)
+        twins = find_twins(doubles, matrix)
+        if len(twins) > 0:
+            for pair in twins:
+                ups = tuple_ellimination(block, matrix, pair)
+                for u in ups:
+                    updates.add(u)
+    return updates
+    
 def output_board(matrix):
     board = [['.' for i in range(9)] for j in range(9)]
     for i in range(9):
@@ -131,10 +189,12 @@ def output_board(matrix):
 
 def sudoku_solver(board):
     matrix, cancellation_queue = load_board(board)
+    blocks = generate_all()
     while len(cancellation_queue) != 0:
         matrix, cancellation_queue = canceller(matrix, cancellation_queue)
-        matrix, updates = full_counter(matrix)
+        matrix, updates = full_counter(blocks, matrix)
+        updates = updates.union(open_twins(blocks, matrix))
         cancellation_queue = list(updates)
+        
     board = output_board(matrix)
     return board
-
