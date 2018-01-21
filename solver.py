@@ -25,6 +25,7 @@ def load_board(board):
     return matrix, cancellation_queue
 
 def change_line(matrix, line, pos, number):
+    '''The simplest Sudoku strategy. If a position in a row row, column or 3x3 square already has a number n, then we know that no other position in that row, column or square can be n. So we remove n from the set of possiblities for every other position in that row, column, or square.'''
     line.remove(pos)
     update = set()
     for position in line:
@@ -58,6 +59,7 @@ def update_square(matrix, pos):
     return updates
 
 def update_matrix(matrix, pos):
+    '''If a position is definitely a certain number, we update possible options along its row, column and square to reflect this.'''
     updates = set()
     for fun in [update_horizontal, update_vertical, update_square]:
         updates = updates.union(fun(matrix, pos))
@@ -71,23 +73,6 @@ def canceller(matrix, cancellation_queue):
         for update in updates:
             cancellation_queue.append(update)
     return matrix
-    
-def count_line(matrix, line):
-    update = set()
-    for number in range(1, 10):
-        count = 0 
-        for position in line: 
-            if number in matrix[position[0]][position[1]]:
-                if len(matrix[position[0]][position[1]]) == 1:
-                    break
-                count += 1
-                if count > 1:
-                    break 
-                saved = position 
-        else:
-            matrix[saved[0]][saved[1]] = set([number])
-            update.add(saved)
-    return update
   
 def generate_lines(horizontal = True):
     lines = []
@@ -111,6 +96,9 @@ def generate_squares():
     return squares
     
 def generate_all():
+    '''
+    generates a list of all the "blocks", that is, positions that are intricately tied to each other because they're the same row, column or 3x3 block where no two positions can be the same number. 
+    '''
     blocks = []
     for line in generate_lines(True):
         blocks.append(line)
@@ -119,8 +107,30 @@ def generate_all():
     for line in generate_squares():
         blocks.append(line)
     return blocks
-  
+
+def count_line(matrix, line):
+    '''
+    For every line, if there is only one position along the line where a possiblity remains that it is n, then  
+    that position MUST necessarily be n. We update the matrix accordingly, and then returns the changed positions.
+    '''
+    update = set()
+    for number in range(1, 10):
+        count = 0 
+        for position in line: 
+            if number in matrix[position[0]][position[1]]:
+                if len(matrix[position[0]][position[1]]) == 1:
+                    break
+                count += 1
+                if count > 1:
+                    break 
+                saved = position 
+        else:
+            matrix[saved[0]][saved[1]] = set([number])
+            update.add(saved)
+    return update
+
 def full_counter(blocks, matrix):
+    '''Invokes count_line on all blocks in the first argument.'''
     updates = set()
     for block in blocks:
         for new_pos in count_line(matrix, block):
@@ -224,13 +234,14 @@ def open_triplets(blocks, matrix):
     return updates
             
 def output_board(matrix):
+    '''returns the updated board in a hopefully easy to read format.'''
     board = [['.' for i in range(9)] for j in range(9)]
     for i in range(9):
         for j in range(9):
             if len(matrix[i][j]) == 1:
                 number = next(iter(matrix[i][j]))
                 board[i][j] = str(number)
-    return board    
+    return '\n'.join('|'.join(row) for row in board)    
 
 def sudoku_solver(board):
     matrix, cancellation_queue = load_board(board)
@@ -239,6 +250,7 @@ def sudoku_solver(board):
         matrix = canceller(matrix, cancellation_queue)
         matrix, updates = full_counter(blocks, matrix)
         updates = updates.union(open_twins(blocks, matrix))
+        updates = updates.union(open_triplets(blocks, matrix))
         cancellation_queue = list(updates)
         
     board = output_board(matrix)
